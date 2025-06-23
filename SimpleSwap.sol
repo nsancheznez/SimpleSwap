@@ -22,10 +22,10 @@ contract SimpleSwap {
     mapping(address => mapping(address => mapping(address => uint))) public liquidityBalances;
 
 
-    /// @notice Evento para agregar liquidez
+    /// @notice Event to add liquidity
     event LiquidityAdded(address indexed provider, address tokenA, address tokenB, uint amountA, uint amountB, uint liquidity);
 
-    /// @notice Evento para remover liquidez
+    /// @notice Event to remove liquidity
     event LiquidityRemoved(address indexed provider, address tokenA, address tokenB, uint amountA, uint amountB);
 
     /// @notice Evento para intercambio de tokens
@@ -102,9 +102,40 @@ contract SimpleSwap {
         address to,
         uint deadline
     ) external returns (uint amountA, uint amountB) {
-        // TODO: implementar lógica
+        require(block.timestamp <= deadline, "SimpleSwap: EXPIRED");
+    
+        // Ensure token order
+        (address token0, address token1) = tokenA < tokenB
+            ? (tokenA, tokenB)
+            : (tokenB, tokenA);
+    
+        Reserve storage res = reserves[token0][token1];
+    
+        uint userLiquidity = liquidityBalances[msg.sender][token0][token1];
+        require(userLiquidity >= liquidity, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
+    
+        uint totalLiquidity = res.reserveA + res.reserveB;
+    
+        // Compute token amounts to withdraw based on user's liquidity share
+        amountA = (liquidity * res.reserveA) / totalLiquidity;
+        amountB = (liquidity * res.reserveB) / totalLiquidity;
+    
+        require(amountA >= amountAMin, "SimpleSwap: INSUFFICIENT_A_AMOUNT");
+        require(amountB >= amountBMin, "SimpleSwap: INSUFFICIENT_B_AMOUNT");
+    
+        // Update reserves
+        res.reserveA -= amountA;
+        res.reserveB -= amountB;
+    
+        // Burn user's liquidity
+        liquidityBalances[msg.sender][token0][token1] -= liquidity;
+    
+        // Transfer tokens to user
+        IERC20(tokenA).transfer(to, amountA);
+        IERC20(tokenB).transfer(to, amountB);
+    
+        emit LiquidityRemoved(to, tokenA, tokenB, amountA, amountB);
     }
-
     // --- 3️⃣ SWAP ---
     /**
      * @notice Swap exact amount of input tokens for output tokens

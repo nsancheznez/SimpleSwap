@@ -12,4 +12,7 @@ A minimalist implementation of a decentralized token exchange smart contract ins
 ## Functions Implemented
 
 - ✅ `addLiquidity`: Users can deposit two ERC-20 tokens into a liquidity pool.
+### ✅ removeLiquidity
+
+Allows users to remove liquidity from a pool. Calculates the appropriate amounts of both tokens based on the user's share and transfers them back.
 

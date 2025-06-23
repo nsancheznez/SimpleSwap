@@ -20,3 +20,6 @@ Allows users to remove liquidity from a pool. Calculates the appropriate amounts
 
 Swaps a fixed amount of input tokens for output tokens using the constant product formula. Ensures minimum output and deadline conditions.
 
+### ✅ getPrice
+
+Returns the current price of tokenA in terms of tokenB based on the internal reserves. Output is fixed-point with 18 decimals.

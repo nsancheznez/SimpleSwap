@@ -35,6 +35,19 @@ contract SimpleSwap {
     /**
      * @notice Add liquidity to a token pair pool
      */
+    /// @notice Adds liquidity to a token pair pool.
+    /// @param tokenA Address of the first token.
+    /// @param tokenB Address of the second token.
+    /// @param amountADesired Desired amount of tokenA to add.
+    /// @param amountBDesired Desired amount of tokenB to add.
+    /// @param amountAMin Minimum acceptable amount of tokenA.
+    /// @param amountBMin Minimum acceptable amount of tokenB.
+    /// @param to Address that will receive the liquidity share.
+    /// @param deadline Transaction must be completed before this timestamp.
+    /// @return amountA Actual amount of tokenA added.
+    /// @return amountB Actual amount of tokenB added.
+    /// @return liquidity Amount of liquidity units issued.
+
     function addLiquidity(
         address tokenA,
         address tokenB,
@@ -93,6 +106,17 @@ contract SimpleSwap {
     /**
      * @notice Remove liquidity from a token pair pool
      */
+    /// @notice Removes liquidity from a token pair pool.
+    /// @param tokenA Address of the first token.
+    /// @param tokenB Address of the second token.
+    /// @param liquidity Amount of liquidity to remove.
+    /// @param amountAMin Minimum acceptable amount of tokenA to receive.
+    /// @param amountBMin Minimum acceptable amount of tokenB to receive.
+    /// @param to Address to which the tokens will be sent.
+    /// @param deadline Transaction must be completed before this timestamp.
+    /// @return amountA Amount of tokenA returned to user.
+    /// @return amountB Amount of tokenB returned to user.
+
     function removeLiquidity(
         address tokenA,
         address tokenB,
@@ -136,10 +160,19 @@ contract SimpleSwap {
     
         emit LiquidityRemoved(to, tokenA, tokenB, amountA, amountB);
     }
+
     // --- 3️⃣ SWAP ---
     /**
      * @notice Swap exact amount of input tokens for output tokens
      */
+    /// @notice Swaps a fixed amount of input tokens for output tokens.
+    /// @param amountIn Exact amount of input tokens to swap.
+    /// @param amountOutMin Minimum amount of output tokens to receive.
+    /// @param path Array of two token addresses: input and output.
+    /// @param to Recipient of the output tokens.
+    /// @param deadline Transaction must be completed before this timestamp.
+    /// @return amounts Array containing input and output amounts.
+
     function swapExactTokensForTokens(
         uint amountIn,
         uint amountOutMin,
@@ -207,6 +240,11 @@ contract SimpleSwap {
     /**
      * @notice Get the price of tokenA in terms of tokenB
      */
+    /// @notice Returns the current price of tokenA in terms of tokenB.
+    /// @param tokenA Address of the token whose price is being queried.
+    /// @param tokenB Address of the reference token.
+    /// @return price The price of tokenA in tokenB, scaled by 1e18.
+
     function getPrice(
         address tokenA,
         address tokenB
@@ -239,6 +277,12 @@ contract SimpleSwap {
     /**
      * @notice Calculate the amount of output tokens for a given input
      */
+    /// @notice Calculates how many output tokens will be received for a given input.
+    /// @param amountIn Amount of input tokens.
+    /// @param reserveIn Reserve of input tokens in the pool.
+    /// @param reserveOut Reserve of output tokens in the pool.
+    /// @return amountOut Amount of output tokens that would be received.
+
     function getAmountOut(
         uint amountIn,
         uint reserveIn,

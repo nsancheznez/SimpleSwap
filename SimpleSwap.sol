@@ -211,7 +211,28 @@ contract SimpleSwap {
         address tokenA,
         address tokenB
     ) external view returns (uint price) {
-        // TODO: implementar lógica
+        require(tokenA != tokenB, "SimpleSwap: IDENTICAL_ADDRESSES");
+    
+        (address token0, address token1) = tokenA < tokenB
+            ? (tokenA, tokenB)
+            : (tokenB, tokenA);
+    
+        Reserve storage res = reserves[token0][token1];
+    
+        uint reserveA;
+        uint reserveB;
+    
+        if (tokenA == token0) {
+            reserveA = res.reserveA;
+            reserveB = res.reserveB;
+        } else {
+            reserveA = res.reserveB;
+            reserveB = res.reserveA;
+        }
+    
+        require(reserveA > 0 && reserveB > 0, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
+    
+        price = (reserveB * 1e18) / reserveA;
     }
 
     // --- 5️⃣ GET AMOUNT OUT ---

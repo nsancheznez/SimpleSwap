@@ -16,3 +16,7 @@ A minimalist implementation of a decentralized token exchange smart contract ins
 
 Allows users to remove liquidity from a pool. Calculates the appropriate amounts of both tokens based on the user's share and transfers them back.
 
+### ✅ swapExactTokensForTokens
+
+Swaps a fixed amount of input tokens for output tokens using the constant product formula. Ensures minimum output and deadline conditions.
+

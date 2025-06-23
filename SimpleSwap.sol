@@ -173,18 +173,30 @@ contract SimpleSwap {
     /// @param deadline Transaction must be completed before this timestamp.
     /// @return amounts Array containing input and output amounts.
 
-    function swapExactTokensForTokens(
+
+    struct SwapParams {
+        uint amountIn;
+        uint amountOutMin;
+        address[] path;
+        address to;
+        uint deadline;
+    }
+    function getAmountOutInternal(
         uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external returns (uint[] memory amounts) {
-        require(block.timestamp <= deadline, "SimpleSwap: EXPIRED");
-        require(path.length == 2, "SimpleSwap: INVALID_PATH");
+        uint reserveIn,
+        uint reserveOut
+    ) internal pure returns (uint amountOut) {
+        require(amountIn > 0, "SimpleSwap: INSUFFICIENT_INPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
+        amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
+    }
+
+    function swapExactTokensForTokens(SwapParams calldata params) external returns (uint[] memory amounts) {
+        require(block.timestamp <= params.deadline, "SimpleSwap: EXPIRED");
+        require(params.path.length == 2, "SimpleSwap: INVALID_PATH");
     
-        address tokenIn = path[0];
-        address tokenOut = path[1];
+        address tokenIn = params.path[0];
+        address tokenOut = params.path[1];
     
         (address token0, address token1) = tokenIn < tokenOut
             ? (tokenIn, tokenOut)
@@ -203,39 +215,29 @@ contract SimpleSwap {
             reserveOut = res.reserveA;
         }
     
-        uint amountOut = getAmountOutInternal(amountIn, reserveIn, reserveOut);
-        require(amountOut >= amountOutMin, "SimpleSwap: INSUFFICIENT_OUTPUT_AMOUNT");
+        uint amountOut = getAmountOutInternal(params.amountIn, reserveIn, reserveOut);
+        require(amountOut >= params.amountOutMin, "SimpleSwap: INSUFFICIENT_OUTPUT_AMOUNT");
     
         // Transfer input tokens from sender to contract
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
         // Transfer output tokens from contract to user
-        IERC20(tokenOut).transfer(to, amountOut);
+        IERC20(tokenOut).transfer(params.to, amountOut);
     
         // Update reserves
         if (tokenIn == token0) {
-            res.reserveA += amountIn;
+            res.reserveA += params.amountIn;
             res.reserveB -= amountOut;
         } else {
-            res.reserveB += amountIn;
+            res.reserveB += params.amountIn;
             res.reserveA -= amountOut;
         }
     
-        amounts = new uint ;
-        amounts[0] = amountIn;
+        amounts = new uint[](2) ;
+        amounts[0] = params.amountIn;
         amounts[1] = amountOut;
     
-        emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut);
+        emit Swap(msg.sender, tokenIn, tokenOut, params.amountIn, amountOut);
     }
-    function getAmountOutInternal(
-        uint amountIn,
-        uint reserveIn,
-        uint reserveOut
-    ) internal pure returns (uint amountOut) {
-        require(amountIn > 0, "SimpleSwap: INSUFFICIENT_INPUT_AMOUNT");
-        require(reserveIn > 0 && reserveOut > 0, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
-        amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
-    }
-
     // --- 4️⃣ GET PRICE ---
     /**
      * @notice Get the price of tokenA in terms of tokenB

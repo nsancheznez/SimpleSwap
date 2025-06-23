@@ -16,8 +16,11 @@ contract SimpleSwap {
         uint reserveB;
     }
 
-    /// @dev Mapeo de par de tokens a sus reservas
+    /// @dev Mapping token pairs to their reserves
     mapping(address => mapping(address => Reserve)) public reserves;
+    /// @dev Mapping to track user liquidity balances per token pair
+    mapping(address => mapping(address => mapping(address => uint))) public liquidityBalances;
+
 
     /// @notice Evento para agregar liquidez
     event LiquidityAdded(address indexed provider, address tokenA, address tokenB, uint amountA, uint amountB, uint liquidity);
@@ -42,7 +45,48 @@ contract SimpleSwap {
         address to,
         uint deadline
     ) external returns (uint amountA, uint amountB, uint liquidity) {
-        // TODO: implementar lógica
+        require(block.timestamp <= deadline, "SimpleSwap: EXPIRED");
+    
+        // Ensure token ordering for consistent storage
+        (address token0, address token1) = tokenA < tokenB
+            ? (tokenA, tokenB)
+            : (tokenB, tokenA);
+    
+        Reserve storage res = reserves[token0][token1];
+    
+        if (res.reserveA == 0 && res.reserveB == 0) {
+            amountA = amountADesired;
+            amountB = amountBDesired;
+        } else {
+            // Compute optimal amountB based on current reserve ratio
+            uint amountBOptimal = (amountADesired * res.reserveB) / res.reserveA;
+            if (amountBOptimal <= amountBDesired) {
+                require(amountBOptimal >= amountBMin, "SimpleSwap: INSUFFICIENT_B_AMOUNT");
+                amountA = amountADesired;
+                amountB = amountBOptimal;
+            } else {
+                uint amountAOptimal = (amountBDesired * res.reserveA) / res.reserveB;
+                require(amountAOptimal >= amountAMin, "SimpleSwap: INSUFFICIENT_A_AMOUNT");
+                amountA = amountAOptimal;
+                amountB = amountBDesired;
+            }
+        }
+    
+        // Transfer tokens from user to contract
+        IERC20(tokenA).transferFrom(msg.sender, address(this), amountA);
+        IERC20(tokenB).transferFrom(msg.sender, address(this), amountB);
+    
+        // Compute liquidity (simplified logic)
+        liquidity = amountA + amountB;
+    
+        // Update reserves
+        res.reserveA += amountA;
+        res.reserveB += amountB;
+    
+        // Track user liquidity
+        liquidityBalances[to][token0][token1] += liquidity;
+    
+        emit LiquidityAdded(to, tokenA, tokenB, amountA, amountB, liquidity);
     }
 
     // --- 2️⃣ REMOVE LIQUIDITY ---

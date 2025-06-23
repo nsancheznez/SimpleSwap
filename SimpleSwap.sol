@@ -244,6 +244,9 @@ contract SimpleSwap {
         uint reserveIn,
         uint reserveOut
     ) external pure returns (uint amountOut) {
-        // TODO: implementar lógica
+        require(amountIn > 0, "SimpleSwap: INSUFFICIENT_INPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
+    
+        amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
     }
 }

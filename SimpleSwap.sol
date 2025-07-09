@@ -203,19 +203,22 @@ contract SimpleSwap {
         amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
     }
 
-    function swapExactTokensForTokens(SwapParams calldata params) external returns (uint[] memory amounts) {
+    function swapExactTokensForTokensSimple(SwapParams memory params) public returns (    uint[] memory amounts) {
         require(block.timestamp <= params.deadline, "SimpleSwap: EXPIRED");
         require(params.path.length == 2, "SimpleSwap: INVALID_PATH");
     
         address tokenIn = params.path[0];
         address tokenOut = params.path[1];
+        require(tokenIn != tokenOut, "SimpleSwap: SAME_TOKEN");
     
+        // Ordenar tokens
         (address token0, address token1) = tokenIn < tokenOut
             ? (tokenIn, tokenOut)
             : (tokenOut, tokenIn);
     
         Reserve storage res = reserves[token0][token1];
     
+        // Obtener reservas
         uint reserveIn;
         uint reserveOut;
     
@@ -227,15 +230,25 @@ contract SimpleSwap {
             reserveOut = res.reserveA;
         }
     
-        uint amountOut = getAmountOutInternal(params.amountIn, reserveIn, reserveOut);
-        require(amountOut >= params.amountOutMin, "SimpleSwap: INSUFFICIENT_OUTPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
     
-        // Transfer input tokens from sender to contract
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
-        // Transfer output tokens from contract to user
-        IERC20(tokenOut).transfer(params.to, amountOut);
+        // Calcular salida  
+        uint amountOut = getAmountOutInternal(params.amountIn,  reserveIn, reserveOut);
+        require(amountOut >= params.amountOutMin, "SimpleSwap:  INSUFFICIENT_OUTPUT_AMOUNT");
     
-        // Update reserves
+        // Transferir tokenIn desde el usuario al contrato
+        require(
+            IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn),
+            "SimpleSwap: TRANSFER_FROM_FAILED"
+        );
+    
+        // Transferir tokenOut desde el contrato al destinatario
+        require(
+            IERC20(tokenOut).transfer(params.to, amountOut),
+            "SimpleSwap: TRANSFER_FAILED"
+        );
+    
+        // Actualizar reservas según el orden
         if (tokenIn == token0) {
             res.reserveA += params.amountIn;
             res.reserveB -= amountOut;
@@ -244,12 +257,31 @@ contract SimpleSwap {
             res.reserveA -= amountOut;
         }
     
+        // Devolver resultado
         amounts = new uint[](2) ;
         amounts[0] = params.amountIn;
         amounts[1] = amountOut;
     
         emit Swap(msg.sender, tokenIn, tokenOut, params.amountIn, amountOut);
     }
+    function swapExactTokensForTokens(
+            uint amountIn,
+            uint amountOutMin,
+            address[] calldata path,
+            address to,
+            uint deadline
+        ) external returns (uint[] memory amounts) {
+            SwapParams memory params = SwapParams({
+                amountIn: amountIn,
+                amountOutMin: amountOutMin,
+                path: path,
+                to: to,
+                deadline: deadline
+            });
+    
+            return swapExactTokensForTokensSimple(params);
+        }
+
     // --- 4️⃣ GET PRICE ---
     /**
      * @notice Get the price of tokenA in terms of tokenB
